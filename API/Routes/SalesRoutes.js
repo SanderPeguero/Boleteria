@@ -1,11 +1,12 @@
-import express from 'express'
-import { saveSale, listSales, findSale, deleteSale } from '../BLL/Sales.js'
+import express from "express";
+import { saveSale, getSales, deleteSale, updateSale } from "../BLL/Sales.js";
 
-const router = express.Router()
+const router = express.Router();
 
-router.get('/', listSales)
-router.get('/:id', findSale)
-router.post('/:id', saveSale)
-router.delete('/:id', deleteSale)
+router
+  .get("/", getSales)
+  .post("/", saveSale)
+  .put("/", updateSale)
+  .delete("/", deleteSale);
 
-export default router
+export default router;

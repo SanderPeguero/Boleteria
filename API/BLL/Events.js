@@ -1,145 +1,52 @@
-import { getInstanceEvent } from '../Models/Event.js'
+import { postDocument, queryDocument } from "../DAL/mysql.js";
+import EventModel from "../Models/Event.js";
 
-import { ConnectionStart } from '../DAL/Connection.js'
+export async function saveEvent(req, res, next) {
+  try {
+    await EventModel.validateAsync(req.body);
 
-let Connection = ConnectionStart()
-let SqlQuery = "SELECT Id, Name, Date, Seats FROM events "
-
-export function saveEvent(req, res){
-    const EventModel = getInstanceEvent(req.body)
-
-    if(EventModel.Id == null || EventModel.Id == 0){
-        insertEvent(EventModel, res)
-    }else{
-        updateEvent(EventModel, res)
-    }
+    const sql = "INSERT INTO events SET ";
+    const result = await postDocument(sql, req.body);
+    if (!result.insertId)
+      throw { message: "Couldn't added the event", status: 500 };
+    res.send({ message: "Added successfully" });
+  } catch (error) {
+    next(error);
+  }
 }
 
-function insertEvent(EventModel, res){
-
-    const values = [
-        EventModel.Name,
-        EventModel.Date,
-        EventModel.Seats
-    ]
-
-    const success = {
-        Executed: false
-    }
-
-    if(values.Name == "" || values.Date == "" || values.seats == ""){
-        
-        res.status(500).json(success)
-        return
-
-    }else{
-
-        Connection = ConnectionStart()
-        
-        Connection.query("INSERT INTO events (Name, Date, Seats) VALUES (?,?,?)", values, (err, result) => {
-            if(!err){
-                success.Executed = true
-                Connection.destroy()
-                res.json(success)
-            }else{
-                success.Executed = true
-                Connection.destroy()
-                console.log(err)
-                res.status(500).json(success)
-            }
-            
-        })
-    }
+export async function updateEvent(req, res, next) {
+  try {
+    const sql = "UPDATE events SET ";
+    const condition = ` WHERE id = '${req.query.id}'`;
+    const result = await postDocument(sql, req.body, condition);
+    if (!result.changedRows)
+      throw { message: "Couldn't update the event", status: 500 };
+    res.send({ message: "Updated successfully" });
+  } catch (error) {
+    next(error);
+  }
 }
 
-function updateEvent(EventModel, res){
-
-    const values = [
-        EventModel.Name,
-        EventModel.Date,
-        EventModel.Seats,
-        EventModel.Id,
-    ]
-
-    const success = {
-        Executed: false
-    }
-
-    Connection = ConnectionStart()
-
-    Connection.query("UPDATE events SET Name=?, Date=?, Seats=? WHERE Id=?", values, (err, result) => {
-        if(!err){
-            success.Executed = true
-            Connection.destroy()
-            res.json(success)
-        }else{
-            success.Executed = false
-            Connection.destroy()
-            console.log(err)
-            res.status(500).json(success)
-        }
-    })
+export async function getEvents(req, res, next) {
+  try {
+    let sql = "SELECT * FROM events ";
+    if (req.query.id) sql += `WHERE id = '${req.query.id}'`;
+    const result = await queryDocument(sql);
+    res.send(result);
+  } catch (error) {
+    next(error);
+  }
 }
 
-export function listEvents(req, res){
-
-    Connection = ConnectionStart()
-
-    Connection.query(SqlQuery, (err, result) => {
-
-        let data = []
-
-        if(!err){
-            for(let i=0; i<result.length; i++){
-                let fila = result[i]
-                data.push(Object.assign({}, getInstanceEvent(fila)))
-            }
-            Connection.destroy()
-            res.json(data)
-        }else{
-            Connection.destroy()
-            console.log(err)
-            res.status(500).json(data)
-        }
-    })
-}
-
-export function findEvent(req,res){
-
-    const { id } = req.params
-    const values = [id]
-
-    Connection = ConnectionStart()
-
-    Connection.query(SqlQuery + " WHERE Id=? ", values, (err, result) => {
-        Connection.destroy()
-        res.json(getInstanceEvent(result[0]))
-    })
-}
-
-export function deleteEvent(req, res){
-
-    const { id } = req.params
-    console.log(id)
-    const values = [id]
-
-    const success = {
-        Executed: false
-    }
-
-    Connection = ConnectionStart()
-
-    Connection.query("DELETE FROM events WHERE Id=? ", values, (err, result)=>{
-        if(!err){
-            success.Executed = true
-            Connection.destroy()
-            res.json(success)
-        }else{
-            success.Executed = false
-            Connection.destroy()
-            console.log(err)
-            res.status(500).json(success)
-        }
-    })
-
+export async function deleteEvent(req, res, next) {
+  try {
+    const { id } = req.query;
+    const sql = `DELETE FROM events WHERE id = ${id}`;
+    const result = await queryDocument(sql);
+    if (!result.affectedRows) throw { message: "Couldn't delete", status: 500 };
+    res.send({ message: "Deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
 }

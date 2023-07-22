@@ -1,24 +1,10 @@
-const SaleModel = {
-    Id: 0,
-    Name: "",
-    Event: "",
-    Date: "",
-    Seats: 0
-}
+import joi from "joi";
 
-export function getInstanceSale(row = null){
-    if(row == null){
-        return SaleModel
-    }
+const SaleModel = joi.object({
+  Name: joi.string().required(),
+  Event: joi.string().required(),
+  Date: joi.date(),
+  Seats: joi.number().required(),
+});
 
-    SaleModel.Id = row.Id || 0
-    SaleModel.Name = row.Name || ""
-    SaleModel.Event = row.Event || ""
-    SaleModel.Date = row.Date || ""
-    SaleModel.Seats = row.Seats || 0
-
-    return SaleModel
-    
-}
-
-export default SaleModel
+export default SaleModel;

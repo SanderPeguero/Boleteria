@@ -1,23 +1,18 @@
+import joi from "joi";
 
-const EventModel = {
-    Id: 0,
-    Name: "",
-    Date: "",
-    Seats: 0
-}
+const EventModel = joi.object({
+  Name: joi.string().required(),
+  Date: joi.date(),
+  Image: joi.string().required(),
+  TotalTickets: joi.number().required(),
+  TicketsSold: joi.number().required(),
+  VIPTickets: joi.number().required(),
+  VIPTicketsPrice: joi.number().required(),
+  RegularTickets: joi.number().required(),
+  RegularTicketsPrice: joi.number().required(),
+  SpecialGuestTickets: joi.number().required(),
+  SpecialGuestTicketsPrice: joi.number().required(),
+  GuestTickets: joi.number().required(),
+});
 
-export function getInstanceEvent(row = null){
-    if(row == null){
-        return EventModel
-    }
-
-    EventModel.Id = row.Id || 0
-    EventModel.Name = row.Name || ""
-    EventModel.Date = row.Date || ""
-    EventModel.Seats = row.Seats || 0
-
-    return EventModel
-    
-}
-
-export default EventModel
+export default EventModel;

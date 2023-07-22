@@ -1,11 +1,17 @@
-import express from 'express'
-import { saveEvent, listEvents, findEvent, deleteEvent } from '../BLL/Events.js'
+import express from "express";
+import {
+  saveEvent,
+  getEvents,
+  deleteEvent,
+  updateEvent,
+} from "../BLL/Events.js";
 
-const router = express.Router()
+const router = express.Router();
 
-router.get('/', listEvents)
-router.get('/:id', findEvent)
-router.post('/', saveEvent)
-router.delete('/:id', deleteEvent)
+router
+  .get("/", getEvents)
+  .post("/", saveEvent)
+  .put("/", updateEvent)
+  .delete("/", deleteEvent);
 
-export default router
+export default router;

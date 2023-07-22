@@ -1,166 +1,59 @@
-import { getInstanceSale } from '../Models/Sale.js'
-import { getInstanceEvent } from '../Models/Event.js'
-import { ConnectionStart } from '../DAL/Connection.js'
-import { saveEvent } from '../BLL/Events.js'
-import EventModel from '../Models/Event.js'
+import { postDocument, queryDocument } from "../DAL/mysql.js";
+import SaleModel from "../Models/Sale.js";
 
+export async function saveSale(req, res, next) {
+  try {
+    await SaleModel.validateAsync(req.body);
 
-let Connection = ConnectionStart()
-let SqlQuery = "SELECT Id, Name, Event, Date, Seats FROM sales "
+    //check have avalable seat;
+    const eventSql = `SELECT * FROM events WHERE id = '${req.query.event_id}'`;
+    const event = await queryDocument(eventSql);
+    if (!event.length) throw { message: "No events found", status: 404 };
+    else if (!event[0].Seats < req.body.Seats)
+      throw { message: "There is no available seat", status: 404 };
 
-export function saveSale(req, res){
-    const SaleModel = getInstanceSale(req.body)
-    
-    const { id } = req.params
-    const values = [id]
-
-    Connection = ConnectionStart()
-
-    Connection.query("SELECT Id, Name, Date, Seats FROM events " + " WHERE Id=? ", values, (err, result) => {
-        
-        Connection.destroy()
-        let Event = getInstanceEvent(result[0])
-        res.json(getInstanceEvent(result[0]))
-
-        const SeatsAvailable = result[0].Seats
-        console.log(SeatsAvailable)
-        
-        if(SeatsAvailable > 0 && SaleModel.Seats < SeatsAvailable){
-            Event.Seats = Event.Seats - SaleModel.Seats
-            saveEvent(Event)
-            if(SaleModel.Id == null || SaleModel.Id == 0){
-                insertSale(SaleModel,EventModel, res)
-            }else{
-                updateSale(SaleModel, res)
-            }
-
-        }
-
-        
-    })
-
-
+    //save the sale;
+    const sql = "INSERT INTO sales SET ";
+    const result = await postDocument(sql, req.body);
+    if (!result.insertId)
+      throw { message: "Couldn't added the sale", status: 500 };
+    res.send({ message: "Added successfully" });
+  } catch (error) {
+    next(error);
+  }
 }
 
-function insertSale(SaleModel, EventModel, res) {
-
-    const date = new Date().toDateString()
-    const values = [
-        SaleModel.Name,
-        EventModel.Name,
-        date,
-        SaleModel.Seats
-    ]
-
-    const success = {
-        Executed: false
-    }
-
-    Connection = ConnectionStart()
-
-    Connection.query("INSERT INTO sales (Name, Event, Date, Seats) VALUES (?,?,?,?)", values, (err, result) => {
-        if(!err){
-            success.Executed = true
-            Connection.destroy()
-            res.json(success)
-        }else{
-            success.Executed = true
-            Connection.destroy()
-            console.log(err)
-            res.status(500).json(success)
-        }
-
-    })
+export async function updateSale(req, res, next) {
+  try {
+    const sql = "UPDATE sales SET ";
+    const conditions = `WHERE id = '${req.query.id}'`;
+    const result = await postDocument(sql, req.body, conditions);
+    if (!result.changedRows)
+      throw { message: "Couldn't update the sale", status: 500 };
+    res.send({ message: "Updated successfully" });
+  } catch (error) {
+    next(error);
+  }
 }
 
-function updateSale(SaleModel, res){
-
-    const values = [
-        SaleModel.Id,
-        SaleModel.Name,
-        SaleModel.Event,
-        SaleModel.Date,
-        SaleModel.Seats,
-    ]
-
-    const success = {
-        Executed: false
-    }
-
-    Connection = ConnectionStart()
-
-    Connection.query("UPDATE sales SET Name=?, Event=?, Date=?, Seats=? WHERE Id=?", values, (err, result) => {
-        if(!err){
-            success.Executed = true
-            Connection.destroy()
-            res.json(success)
-        }else{
-            success.Executed = false
-            Connection.destroy()
-            console.log(err)
-            res.status(500).json(success)
-        }
-    })
+export async function getSales(req, res, next) {
+  try {
+    let sql = "SELECT * FROM sales ";
+    if (req.query.id) sql += `WHERE id = '${req.query.id}'`;
+    const result = await queryDocument(sql);
+    res.send(result);
+  } catch (error) {
+    next(error);
+  }
 }
 
-export function listSales(req, res){
-
-    Connection = ConnectionStart()
-
-    Connection.query(SqlQuery, (err, result) => {
-
-        let data = []
-
-        if(!err){
-            for(let i=0; i<result.length; i++){
-                let fila = result[i]
-                data.push(Object.assign({}, getInstanceSale(fila)))
-            }
-            Connection.destroy()
-            res.json(data)
-        }else{
-            Connection.destroy()
-            console.log(err)
-            res.status(500).json(data)
-        }
-    })
-}
-
-export function findSale(req,res){
-
-    const { id } = req.params
-    const values = [id, 1]
-
-    Connection = ConnectionStart()
-
-    Connection.query(SqlQuery + " WHERE Id=? ", values, (err, result) => {
-        Connection.destroy()
-        res.json(getInstanceSale(result[0]))
-    })
-}
-
-export function deleteSale(req, res){
-
-    const { id } = req.params
-    const values = [id]
-
-    const success = {
-        Executed: false
-    }
-
-    Connection = ConnectionStart()
-
-    Connection.query("DELETE FROM sales WHERE Id=? ", values, (err, result)=>{
-        if(!err){
-            success.Executed = true
-            Connection.destroy()
-            res.json(success)
-        }else{
-            success.Executed = false
-            Connection.destroy()
-            console.log(err)
-            res.status(500).json(success)
-        }
-    })
-
+export async function deleteSale(req, res, next) {
+  try {
+    const sql = `DELETE FROM sales WHERE id = '${req.query.id}'`;
+    const result = await queryDocument(sql);
+    if (!result.affectedRows) throw { message: "Couldn't delete", status: 500 };
+    res.send({ message: "Deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
 }
